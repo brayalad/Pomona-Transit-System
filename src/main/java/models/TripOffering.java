@@ -1,19 +1,22 @@
 package models;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.sql.Date;
 import java.sql.Time;
 
-public class TripOffering extends AbstractTableDataModel implements TableDataModel {
-    private final long tripNumber;
-    private final Date date;
-    private final Time scheduledStartTime;
-    private final Time scheduledArrivalTime;
-    private final String driverName;
-    private final String busID;
+public class TripOffering implements TableDataModel {
+    private long tripNumber;
+    private Date date;
+    private Time scheduledStartTime;
+    private Time scheduledArrivalTime;
+    private String driverName;
+    private String busID;
 
-    private TripOffering(
+    public TripOffering(){}
+
+    public TripOffering(
             final long tripNumber,
             final Date date,
             final Time scheduledStartTime,
@@ -29,31 +32,53 @@ public class TripOffering extends AbstractTableDataModel implements TableDataMod
         this.busID = busID;
     }
 
+    public void setTripNumber(final long tripNumber) {
+        this.tripNumber = tripNumber;
+    }
+
     public long getTripNumber() {
         return tripNumber;
+    }
+
+    public void setDate(final Date date) {
+        this.date = date;
     }
 
     public Date getDate() {
         return date;
     }
 
+    public void setScheduledStartTime(final Time scheduledStartTime) {
+        this.scheduledStartTime = scheduledStartTime;
+    }
+
     public Time getScheduledStartTime() {
         return scheduledStartTime;
+    }
+
+    public void setScheduledArrivalTime(final Time scheduledArrivalTime) {
+        this.scheduledArrivalTime = scheduledArrivalTime;
     }
 
     public Time getScheduledArrivalTime() {
         return scheduledArrivalTime;
     }
 
+    public void setDriverName(final String driverName){
+        this.driverName = driverName;
+    }
+
     public String getDriverName() {
         return driverName;
+    }
+
+    public void setBusID(final String busID){
+        this.busID = busID;
     }
 
     public String getBusID() {
         return busID;
     }
-
-    public static Builder builder(){ return new Builder(); }
 
     @Override
     public Object getPrimaryKey() {
@@ -62,49 +87,12 @@ public class TripOffering extends AbstractTableDataModel implements TableDataMod
 
     @Override
     public String toString(){
-        return ToStringBuilder.reflectionToString(this, TO_STRING_STYLE);
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.JSON_STYLE);
     }
 
-    public static class Builder {
-        private long tripNumber;
-        private Date date;
-        private Time scheduledStartTime;
-        private Time scheduledArrivalTime;
-        private String driverName;
-        private String busID;
-
-        public Builder setTripNumber(final long tripNumber) {
-            this.tripNumber = tripNumber;
-            return this;
-        }
-
-        public Builder setDate(final Date date) {
-            this.date = date;
-            return this;
-        }
-
-        public Builder setScheduledStartTime(final Time scheduledStartTime) {
-            this.scheduledStartTime = scheduledStartTime;
-            return this;
-        }
-
-        public Builder setScheduledArrivalTime(final Time scheduledArrivalTime) {
-            this.scheduledArrivalTime = scheduledArrivalTime;
-            return this;
-        }
-
-        public Builder setDriverName(final String driverName){
-            this.driverName = driverName;
-            return this;
-        }
-
-        public Builder setBusID(final String busID){
-            this.busID = busID;
-            return this;
-        }
-
-        public TripOffering build(){
-            return new TripOffering(tripNumber, date, scheduledStartTime, scheduledArrivalTime, driverName, busID);
-        }
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
+
 }

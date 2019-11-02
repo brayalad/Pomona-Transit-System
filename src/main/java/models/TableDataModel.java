@@ -1,8 +1,9 @@
 package models;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public interface TableDataModel {
+public interface TableDataModel extends Cloneable, Serializable {
 
     Object getPrimaryKey();
 

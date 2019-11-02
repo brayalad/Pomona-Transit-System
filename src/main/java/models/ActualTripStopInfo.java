@@ -1,22 +1,25 @@
 package models;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.sql.Date;
 import java.sql.Time;
 
-public class ActualTripStopInfo extends AbstractTableDataModel implements TableDataModel {
-    private final long tripNumber;
-    private final Date date;
-    private final Time scheduledStartTime;
-    private final long stopNumber;
-    private final Time scheduledArrivalTime;
-    private final Time actualStartTime;
-    private final Time actualArrivalTime;
-    private final long numberOfPassengerIn;
-    private final long numberOfPassengerOut;
+public class ActualTripStopInfo implements TableDataModel {
+    private long tripNumber;
+    private Date date;
+    private Time scheduledStartTime;
+    private long stopNumber;
+    private Time scheduledArrivalTime;
+    private Time actualStartTime;
+    private Time actualArrivalTime;
+    private long numberOfPassengerIn;
+    private long numberOfPassengerOut;
 
-    private ActualTripStopInfo(
+    public ActualTripStopInfo(){}
+
+    public ActualTripStopInfo(
             final long tripNumber,
             final Date date,
             final Time scheduledStartTime,
@@ -38,43 +41,77 @@ public class ActualTripStopInfo extends AbstractTableDataModel implements TableD
         this.numberOfPassengerOut = numberOfPassengerOut;
     }
 
+    public void setTripNumber(final long tripNumber){
+        this.tripNumber = tripNumber;
+    }
+
     public long getTripNumber() {
         return tripNumber;
+    }
+
+    public void setDate(final Date date){
+        this.date = date;
     }
 
     public Date getDate() {
         return date;
     }
 
+    public void setScheduledStartTime(final Time scheduledStartTime){
+        this.scheduledStartTime = scheduledStartTime;
+    }
+
     public Time getScheduledStartTime() {
         return scheduledStartTime;
+    }
+
+    public void setStopNumber(final long stopNumber){
+        this.stopNumber = stopNumber;
     }
 
     public long getStopNumber() {
         return stopNumber;
     }
 
+    public void setScheduledArrivalTime(final Time scheduledArrivalTime){
+        this.scheduledArrivalTime = scheduledArrivalTime;
+    }
+
     public Time getScheduledArrivalTime() {
         return scheduledArrivalTime;
+    }
+
+    public void setActualStartTime(final Time actualStartTime){
+        this.actualStartTime = actualStartTime;
     }
 
     public Time getActualStartTime() {
         return actualStartTime;
     }
 
+    public void setActualArrivalTime(final Time actualArrivalTime){
+        this.actualArrivalTime = actualArrivalTime;
+    }
+
     public Time getActualArrivalTime() {
         return actualArrivalTime;
+    }
+
+    public void setNumberOfPassengerIn(final long numberOfPassengerIn){
+        this.numberOfPassengerIn = numberOfPassengerIn;
     }
 
     public long getNumberOfPassengerIn() {
         return numberOfPassengerIn;
     }
 
+    public void setNumberOfPassengerOut(final long numberOfPassengerOut){
+        this.numberOfPassengerOut = numberOfPassengerOut;
+    }
+
     public long getNumberOfPassengerOut() {
         return numberOfPassengerOut;
     }
-
-    public static Builder builder(){ return new Builder(); }
 
     @Override
     public Object getPrimaryKey() {
@@ -83,79 +120,11 @@ public class ActualTripStopInfo extends AbstractTableDataModel implements TableD
 
     @Override
     public String toString(){
-       return ToStringBuilder.reflectionToString(this, TO_STRING_STYLE);
+       return ToStringBuilder.reflectionToString(this, ToStringStyle.JSON_STYLE);
     }
 
-    public static class Builder {
-        private long tripNumber;
-        private Date date;
-        private Time scheduledStartTime;
-        private long stopNumber;
-        private Time scheduledArrivalTime;
-        private Time actualStartTime;
-        private Time actualArrivalTime;
-        private long numberOfPassengerIn;
-        private long numberOfPassengerOut;
-
-        public Builder setTripNumber(final long tripNumber) {
-            this.tripNumber = tripNumber;
-            return this;
-        }
-
-        public Builder setDate(final Date date) {
-            this.date = date;
-            return this;
-        }
-
-        public Builder setScheduledStartTime(final Time scheduledStartTime) {
-            this.scheduledStartTime = scheduledStartTime;
-            return this;
-        }
-
-        public Builder setStopNumber(final long stopNumber) {
-            this.stopNumber = stopNumber;
-            return this;
-        }
-
-        public Builder setScheduledArrivalTime(final Time scheduledArrivalTime) {
-            this.scheduledArrivalTime = scheduledArrivalTime;
-            return this;
-        }
-
-        public Builder setActualStartTime(final Time actualStartTime) {
-            this.actualStartTime = actualStartTime;
-            return this;
-        }
-
-        public Builder setActualArrivalTime(final Time actualArrivalTime) {
-            this.actualArrivalTime = actualArrivalTime;
-            return this;
-        }
-
-        public Builder setNumberOfPassengerIn(final long numberOfPassengerIn) {
-            this.numberOfPassengerIn = numberOfPassengerIn;
-            return this;
-        }
-
-        public Builder setNumberOfPassengerOut(final long numberOfPassengerOut) {
-            this.numberOfPassengerOut = numberOfPassengerOut;
-            return this;
-        }
-
-        public ActualTripStopInfo build(){
-            return new ActualTripStopInfo(
-                    tripNumber,
-                    date,
-                    scheduledStartTime,
-                    stopNumber,
-                    scheduledArrivalTime,
-                    actualStartTime,
-                    actualArrivalTime,
-                    numberOfPassengerIn,
-                    numberOfPassengerOut
-            );
-        }
-
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
-
 }

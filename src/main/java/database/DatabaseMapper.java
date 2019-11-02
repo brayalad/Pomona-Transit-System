@@ -1,19 +1,19 @@
-package mappers;
+package database;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import database.TableModelType;
+import mappers.TableDataModelMapper;
 import models.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 
-public class TableDataMapper {
+public class DatabaseMapper {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private final Map<TableModelType, TableDataModelMapper> mappers;
 
-    public TableDataMapper(final Map<TableModelType, TableDataModelMapper> mappers) {
+    public DatabaseMapper(final Map<TableModelType, TableDataModelMapper> mappers) {
         this.mappers = mappers;
     }
 

@@ -1,26 +1,35 @@
 package models;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 
-public class Driver extends AbstractTableDataModel implements TableDataModel {
-    private final String driverName;
-    private final String driverTelephoneNumber;
+public class Driver implements TableDataModel {
+    private String driverName;
+    private String driverTelephoneNumber;
 
-    private Driver(final String driverName, final String driverTelephoneNumber) {
+    public Driver(){}
+
+    public Driver(final String driverName, final String driverTelephoneNumber) {
         this.driverName = driverName;
         this.driverTelephoneNumber = driverTelephoneNumber;
+    }
+
+    public void setDriversName(final String driverName) {
+        this.driverName = driverName;
     }
 
     public String getDriverName() {
         return driverName;
     }
 
+    public void setDriverTelephoneNumber(final String driverTelephoneNumber) {
+        this.driverTelephoneNumber = driverTelephoneNumber;
+    }
+
     public String getDriverTelephoneNumber() {
         return driverTelephoneNumber;
     }
-
-    public static Builder builder(){ return new Builder(); }
 
     @Override
     public Object getPrimaryKey() {
@@ -29,25 +38,11 @@ public class Driver extends AbstractTableDataModel implements TableDataModel {
 
     @Override
     public String toString(){
-        return ToStringBuilder.reflectionToString(this, TO_STRING_STYLE);
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.JSON_STYLE);
     }
 
-    public static class Builder {
-        private String driversName;
-        private String driverTelephoneNumber;
-
-        public Builder setDriversName(final String driversName) {
-            this.driversName = driversName;
-            return this;
-        }
-
-        public Builder setDriverTelephoneNumber(final String driverTelephoneNumber) {
-            this.driverTelephoneNumber = driverTelephoneNumber;
-            return this;
-        }
-
-        public Driver build(){
-            return new Driver(driversName, driverTelephoneNumber);
-        }
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 }

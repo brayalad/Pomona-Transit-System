@@ -10,10 +10,12 @@ public class DriverMapper implements TableDataModelMapper<Driver> {
 
     @Override
     public Driver mapRow(final ResultSet resultSet, final int i) throws SQLException {
-        return Driver.builder()
-                .setDriversName(resultSet.getString(Columns.DRIVER_NAME_COLUMN_LABEL))
-                .setDriverTelephoneNumber(resultSet.getString(Columns.DRIVER_TELEPHONE_NUMBER_COLUMN_LABEL))
-                .build();
+        final Driver driver = new Driver();
+
+        driver.setDriversName(resultSet.getString(Columns.DRIVER_NAME_COLUMN_LABEL));
+        driver.setDriverTelephoneNumber(resultSet.getString(Columns.DRIVER_TELEPHONE_NUMBER_COLUMN_LABEL));
+
+        return driver;
     }
 
     @Override
