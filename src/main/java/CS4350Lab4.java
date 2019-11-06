@@ -1,3 +1,4 @@
+
 import java.sql.*;
 
 import java.sql.Date;
@@ -8,7 +9,6 @@ import java.util.stream.Collectors;
 
 
 public class CS4350Lab4 {
-    private static final String CON_STR_FORMAT = "jdbc:%s://%s:%s/%s?user=%s&password=%s";
 
     private static final String NO_RESULT_FORMAT = "No result for input: \n %s";
 
@@ -114,7 +114,7 @@ public class CS4350Lab4 {
 
     private static final Scanner input = new Scanner(System.in);
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         try {
             run();
         } catch (RuntimeException e) {
@@ -125,29 +125,31 @@ public class CS4350Lab4 {
     }
 
     private static void run(){
+        Connection connection = null;
         Map<String, PreparedStatement> statements = null;
         try {
-            statements = getPreparedStatements(connectToDatabase());
+            connection = connectToDatabase();
+            statements = getPreparedStatements(connection);
         } catch (SQLException e) {
             printError("Connection to database not made.");
         } finally {
-            if(statements != null) {
+            if(statements != null && connection != null) {
                 print(MENU);
-                run(statements);
+                run(statements, connection);
             } else {
                 println("Make sure database settings are correct.");
             }
         }
     }
 
-    private static void run(Map<String, PreparedStatement> statements) {
+    private static void run(final Map<String, PreparedStatement> statements, final Connection connection) {
         try {
             String input;
              do {
                  input = getInput("Option to Run Command: ");
                  switch (input.toUpperCase()) {
                     case "1":
-                        displaySchedule(statements.get("DISPLAY_SCHEDULE"));
+                        displayTripSchedule(statements.get("DISPLAY_SCHEDULE"));
                         break;
 
                     case "2":
@@ -159,11 +161,11 @@ public class CS4350Lab4 {
                         break;
 
                     case "4":
-                        changeDriver(statements.get("CHANGE_DRIVER"));
+                        changeTripOfferingDriver(statements.get("CHANGE_DRIVER"));
                         break;
 
                     case "5":
-                        changeBus(statements.get("CHANGE_BUS"));
+                        changeTripOfferingBus(statements.get("CHANGE_BUS"));
                         break;
 
                     case "6":
@@ -171,7 +173,7 @@ public class CS4350Lab4 {
                         break;
 
                     case "7":
-                        displayWeekly(statements.get("DISPLAY_WEEKLY"));
+                        displayWeeklySchedule(statements.get("DISPLAY_WEEKLY"));
                         break;
 
                     case "8":
@@ -195,10 +197,10 @@ public class CS4350Lab4 {
                         break;
 
                      case "13":
-                         displayTable(statements.values().iterator().next().getConnection().createStatement());
+                         displayTable(connection.createStatement());
                         break;
                      case "14":
-                         executeCustomStatement(statements.values().iterator().next().getConnection().createStatement());
+                         executeCustomStatement(connection.createStatement());
                          break;
 
                     case "Q":
@@ -206,36 +208,36 @@ public class CS4350Lab4 {
                         break;
 
                     default:
-                        println("Invalid input.");
+                        println("Invalid input.\n");
+                        print(MENU);
                         break;
                 }
                 clearStatementParameters(statements);
-                 if(!input.equalsIgnoreCase("Q")) print(MENU);
             } while (!input.equalsIgnoreCase("Q"));
         } catch (SQLException e) {
             printError(e);
-            run(statements);
+            run(statements, connection);
         }
 
         System.exit(0);
     }
 
-    private static void displaySchedule(PreparedStatement statement) {
-        Map<String, String> input = getInput(START_LOCATION_NAME, DESTINATION_NAME, DATE);
+    private static void displayTripSchedule(final PreparedStatement statement) {
+        final Map<String, String> input = getInput(START_LOCATION_NAME, DESTINATION_NAME, DATE);
+
         try{
             statement.setString(1, input.get(START_LOCATION_NAME));
             statement.setString(2, input.get(DESTINATION_NAME));
             statement.setDate(3, Date.valueOf(input.get(DATE)));
 
-            ResultSet resultSet = executeQuery(statement);
-            displayResults(resultSet);
+            displayResults(executeQuery(statement));
         } catch (SQLException e) {
             printError(e);
         }
     }
 
-    private static void deleteTripOffering(PreparedStatement statement) {
-        Map<String, String> input = getInput(TRIP_NUMBER, DATE, SCHEDULED_START_TIME);
+    private static void deleteTripOffering(final PreparedStatement statement) {
+        final Map<String, String> input = getInput(TRIP_NUMBER, DATE, SCHEDULED_START_TIME);
 
         try {
             statement.setLong(1, Long.parseLong(input.get(TRIP_NUMBER)));
@@ -254,7 +256,14 @@ public class CS4350Lab4 {
         try {
             String input;
             do {
-                Map<String, String> inputs = getInput(TRIP_NUMBER, DATE, SCHEDULED_START_TIME, SCHEDULED_ARRIVAL_TIME, DRIVER_NAME, BUS_ID);
+                final Map<String, String> inputs = getInput(
+                        TRIP_NUMBER,
+                        DATE,
+                        SCHEDULED_START_TIME,
+                        SCHEDULED_ARRIVAL_TIME,
+                        DRIVER_NAME,
+                        BUS_ID
+                );
 
                 statement.setLong(1, Long.parseLong(inputs.get(TRIP_NUMBER)));
                 statement.setDate(2, Date.valueOf(inputs.get(DATE)));
@@ -274,8 +283,8 @@ public class CS4350Lab4 {
         }
     }
 
-    private static void changeDriver(PreparedStatement statement) {
-        Map<String, String> input = getInput(DRIVER_NAME, TRIP_NUMBER, DATE, SCHEDULED_START_TIME);
+    private static void changeTripOfferingDriver(final PreparedStatement statement) {
+        final Map<String, String> input = getInput(DRIVER_NAME, TRIP_NUMBER, DATE, SCHEDULED_START_TIME);
 
         try {
             statement.setString(1, input.get(DRIVER_NAME));
@@ -292,8 +301,8 @@ public class CS4350Lab4 {
     }
 
 
-    private static void changeBus(PreparedStatement statement){
-        Map<String, String> input = getInput(BUS_ID, TRIP_NUMBER, DATE, SCHEDULED_START_TIME);
+    private static void changeTripOfferingBus(final PreparedStatement statement){
+        final Map<String, String> input = getInput(BUS_ID, TRIP_NUMBER, DATE, SCHEDULED_START_TIME);
 
         try {
             statement.setLong(1, Long.parseLong(input.get(BUS_ID)));
@@ -303,14 +312,14 @@ public class CS4350Lab4 {
 
             if (executeUpdate(statement) == 0) throw new SQLException(compileNoResultsMessage(input));
 
-            println("Successfully updated Bus");
+            println("Bus changed.");
         } catch (SQLException e) {
             printError(e);
         }
     }
 
-    private static void displayTripStops(PreparedStatement statement) {
-        String tripNumber = getInput(TRIP_NUMBER);
+    private static void displayTripStops(final PreparedStatement statement) {
+        final String tripNumber = getInput(TRIP_NUMBER);
 
         try{
             statement.setLong(1, Long.parseLong(tripNumber));
@@ -320,21 +329,21 @@ public class CS4350Lab4 {
         }
     }
 
-    private static void displayWeekly(PreparedStatement statement) {
-        Map<String, String> input = getInput(DRIVER_NAME, DATE);
+    private static void displayWeeklySchedule(final PreparedStatement statement) {
+        final Map<String, String> input = getInput(DRIVER_NAME, DATE);
 
-        LocalDate startDate = LocalDate.parse(input.get(DATE));
+        final LocalDate startDate = LocalDate.parse(input.get(DATE));
 
         boolean columnsDisplayed = false;
         for(int i = 0; i < 7; ++i) {
-            LocalDate currentDate = startDate.plusDays(i);
+            final LocalDate currentDate = startDate.plusDays(i);
             try {
                 statement.setString(1, input.get(DRIVER_NAME));
                 statement.setString(2, currentDate.toString());
 
-                ResultSet rs = executeQuery(statement);
+                final ResultSet rs = executeQuery(statement);
 
-                if (!columnsDisplayed) displayResultColumns(rs);
+                if (!columnsDisplayed) displayResultColumns(rs.getMetaData());
                 columnsDisplayed = !columnsDisplayed ? true : true;
 
                 displayResultSet(rs, currentDate.toString());
@@ -344,8 +353,8 @@ public class CS4350Lab4 {
         }
     }
 
-    private static void addDriver(PreparedStatement statement){
-        Map<String, String> input = getInput(DRIVER_NAME, DRIVER_PHONE_NUMBER);
+    private static void addDriver(final PreparedStatement statement){
+        final Map<String, String> input = getInput(DRIVER_NAME, DRIVER_PHONE_NUMBER);
 
         try {
             statement.setString(1, input.get(DRIVER_NAME));
@@ -353,14 +362,14 @@ public class CS4350Lab4 {
 
             if(executeUpdate(statement) == 0) throw new SQLException("Driver not added.");
 
-            println("Successfully added a new Driver");
+            println("Driver added.");
         } catch (SQLException e) {
             printError(e);
         }
     }
 
-    private static void addBus(PreparedStatement statement) {
-        Map<String, String> input = getInput(BUS_ID, BUS_MODEL, BUS_YEAR);
+    private static void addBus(final PreparedStatement statement) {
+        final Map<String, String> input = getInput(BUS_ID, BUS_MODEL, BUS_YEAR);
 
         try {
             statement.setString(1, input.get(BUS_ID));
@@ -375,8 +384,8 @@ public class CS4350Lab4 {
         }
     }
 
-    private static void deleteBus(PreparedStatement statement){
-        String busID = getInput("Bus ID: ");
+    private static void deleteBus(final PreparedStatement statement){
+        final String busID = getInput("Bus ID: ");
 
         try {
             statement.setString(1, busID);
@@ -389,8 +398,8 @@ public class CS4350Lab4 {
         }
     }
 
-    private static void insertTripData(PreparedStatement statement) {
-        Map<String, String> input = getInput(
+    private static void insertTripData(final PreparedStatement statement) {
+        final Map<String, String> input = getInput(
                 TRIP_NUMBER,
                 DATE,
                 SCHEDULED_START_TIME,
@@ -415,14 +424,14 @@ public class CS4350Lab4 {
 
             if(executeUpdate(statement) == 0) throw new SQLException("Data not added.");
 
-            println("Successfully recorded data");
+            println("Data added");
         } catch (SQLException e) {
             printError(e);
         }
     }
 
-    private static void executeCustomStatement(Statement statement){
-        String query = getInput("Statement: ");
+    private static void executeCustomStatement(final Statement statement){
+        final String query = getInput("Statement: ");
 
         try {
             if(query.toUpperCase().startsWith("SELECT")){
@@ -430,7 +439,7 @@ public class CS4350Lab4 {
             } else if (query.toUpperCase().startsWith("INSERT") || query.startsWith("UPDATE") || query.startsWith("DELETE")){
                 if(statement.executeUpdate(query) == 0) throw new SQLException(compileNoResultsMessage(query));
             } else {
-                throw new SQLException("Invalid Statement.");
+                throw new SQLException("Unsupported Statement.");
             }
         } catch (SQLException e){
             printError(e);
@@ -442,32 +451,30 @@ public class CS4350Lab4 {
 
         try {
             Class.forName(System.getenv("DB_DRIVER"));
-            String driver = System.getenv("DB_TYPE");
-            String dbName = System.getenv("DB_NAME");
-            String hostname = System.getenv("DB_HOST");
-            String port = System.getenv("DB_PORT");
-            String user = System.getenv("DB_USERNAME");
-            String password = System.getenv("DB_PASSWORD");
+            final String driver = System.getenv("DB_TYPE");
+            final String dbName = System.getenv("DB_NAME");
+            final String hostname = System.getenv("DB_HOST");
+            final String port = System.getenv("DB_PORT");
+            final String user = System.getenv("DB_USERNAME");
+            final String password = System.getenv("DB_PASSWORD");
 
-            String conStr = String.format(CON_STR_FORMAT, driver, hostname, port, dbName, user, password);
-
-            return DriverManager.getConnection(conStr);
+            return DriverManager.getConnection(String.format("jdbc:%s://%s:%s/%s", driver, hostname, port, dbName), user, password);
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Connecting to Database Failed.");
         }
     }
 
-    private static Map<String, PreparedStatement> getPreparedStatements(Connection dbc) throws SQLException {
-        Map<String, PreparedStatement> preparedStatements = new HashMap<>();
+    private static Map<String, PreparedStatement> getPreparedStatements(final Connection dbc) throws SQLException {
+        final Map<String, PreparedStatement> preparedStatements = new HashMap<>();
 
-        for(Map.Entry<String, String> statement : getStatementsFormats().entrySet())
+        for(final Map.Entry<String, String> statement : getStatementsFormats().entrySet())
             preparedStatements.put(statement.getKey(), dbc.prepareStatement(statement.getValue()));
 
         return Map.copyOf(preparedStatements);
     }
 
     private static Map<String, String> getStatementsFormats() {
-        Map<String, String> statements = new HashMap<>(11);
+        final Map<String, String> statements = new HashMap<>(11);
 
         statements.put("DISPLAY_SCHEDULE", DISPLAY_SCHEDULE_QUERY_FORMAT);
         statements.put("DELETE_TRIP_OFFERING", DELETE_TRIP_OFFERING_QUERY_FORMAT);
@@ -484,76 +491,65 @@ public class CS4350Lab4 {
         return Map.copyOf(statements);
     }
 
-    private static void displayTable(Statement statement) throws SQLException {
-        int n = TABLES.size();
-        String f = "%d)\t%s";
+    private static void displayTable(final Statement statement) throws SQLException {
+        final int n = TABLES.size();
 
         int input;
-        do{
+        do {
             println("Tables:");
-            for(int i = 0; i < n; ++i)
-                println(String.format(f,(i+1), TABLES.get(i)));
-            println(String.format(f, (n+1), "Display All"));
+            for(int i = 0; i <= n; ++i) {
+                if (i == n)
+                    println(String.format("%d)\t%s", (n + 1), "Display All"));
+                else
+                    println(String.format("%d)\t%s", (i + 1), TABLES.get(i)));
+            }
 
             input = Integer.parseInt(getInput("Table: "));
+
+            if(input < 0 || input > (n + 1)) println("Invalid Input. Try Again.\n");
         } while(!(input <= (n + 1) && input > 0));
 
-        for (String s : (input == (n + 1) ? TABLES : List.of((TABLES.get(input - 1)))))
+        for (final String s : ((input == (n + 1)) ? TABLES : List.of((TABLES.get(input - 1)))))
             displayResults(statement.executeQuery(String.format(DISPLAY_TABLE_FORMAT, s)));
     }
 
-    private static void displayResults(ResultSet rs) throws SQLException {
-        displayResults(rs,null);
-    }
-
-    private static void displayResults(ResultSet rs, String title) throws SQLException {
-        displayResultColumns(rs, title);
-        displayResultSet(rs, title);
-    }
-
-    private static void displayResultSet(ResultSet rs) throws SQLException {
+    private static void displayResults(final ResultSet rs) throws SQLException {
+        displayResultColumns(rs.getMetaData());
         displayResultSet(rs, null);
     }
 
-    private static void displayResultSet(ResultSet rs, String title) throws SQLException {
-        int colCount = rs.getMetaData().getColumnCount();
+    private static void displayResultSet(final ResultSet rs, final String title) throws SQLException {
+        final int colCount = rs.getMetaData().getColumnCount();
 
         if(title != null)
             print(String.format("\n-----------------------%s-------------------------------\n", title));
 
         while(rs.next()){
-            for(int i = 1; i <= colCount; i++)
-                print(rs.getString(i) + "\t\t");
+            for(int i = 1; i <= colCount; ++i)
+                print(String.format("%s\t\t", rs.getString(i)));
+
             println("");
         }
     }
 
-    private static void displayResultColumns(ResultSet rs) throws SQLException {
-        displayResultColumns(rs, null);
-    }
+    private static void displayResultColumns(final ResultSetMetaData rsmd) throws SQLException {
+        final int colCount = rsmd.getColumnCount();
 
-    private static void displayResultColumns(ResultSet rs, String title) throws SQLException {
-        ResultSetMetaData rsmd = rs.getMetaData();
-        int colCount = rsmd.getColumnCount();
-        if(title != null)
-            print(String.format("\n-----------------------%s-------------------------------\n", title));
+        for(int i = 1; i <= colCount; ++i)
+            print(String.format("%s\t\t", rsmd.getColumnName(i)));
 
-        for(int i = 1; i <= colCount; i++){
-            print(rsmd.getColumnName(i) + "\t\t");
-        }
         println("\n------------------------------------------------------\n");
-
     }
 
-    private static ResultSet executeQuery(PreparedStatement statement) throws SQLException {
+    private static ResultSet executeQuery(final PreparedStatement statement) throws SQLException {
         return statement.executeQuery();
     }
 
-    private static long executeUpdate(PreparedStatement statement) throws SQLException {
+    private static long executeUpdate(final PreparedStatement statement) throws SQLException {
         return statement.executeLargeUpdate();
     }
 
-    private static Map<String, String> getInput(String ...args){
+    private static Map<String, String> getInput(final String ...args){
        return Arrays.stream(args).collect(Collectors.toMap(arg -> arg, CS4350Lab4::getInput));
     }
 
@@ -561,36 +557,36 @@ public class CS4350Lab4 {
         return input.nextLine().trim();
     }
 
-    private static String getInput(String s){
+    private static String getInput(final String s){
         print(String.format("Enter %s", s));
         return getInput();
     }
 
-    private static void print(String s){
+    private static void print(final String s){
         System.out.print(s);
     }
 
-    private static void println(String s){
+    private static void println(final String s){
         System.out.println(s);
     }
 
-    private static void printError(Exception e){
+    private static void printError(final Exception e){
         printError(e.getLocalizedMessage());
     }
 
-    private static void printError(String s){
+    private static void printError(final String s){
         System.err.printf("Error: %s \n", s);
     }
 
-    private static String compileNoResultsMessage(Map<String, String> input){
+    private static String compileNoResultsMessage(final Map<String, String> input){
         return compileNoResultsMessage(input.toString());
     }
 
-    private static String compileNoResultsMessage(String input){
+    private static String compileNoResultsMessage(final String input){
         return String.format(NO_RESULT_FORMAT, input);
     }
 
-    private static void clearStatementParameters(Map<String, PreparedStatement> statements) throws SQLException{
+    private static void clearStatementParameters(final Map<String, PreparedStatement> statements) throws SQLException{
         for (PreparedStatement statement : statements.values()) statement.clearParameters();
     }
 }
