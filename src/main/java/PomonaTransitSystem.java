@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
-public class CS4350Lab4 {
+public class PomonaTransitSystem {
 
     private static final String NO_RESULT_FORMAT = "No result for input: \n %s";
 
@@ -33,12 +33,12 @@ public class CS4350Lab4 {
 
     private static final List<String> TABLES = List.of("ActualTripStopInfo", "Bus", "Driver", "Stop", "Trip", "TripOffering", "TripStopInfo");
 
-    private static final String DISPLAY_SCHEDULE_QUERY_FORMAT = "SELECT TRO.ScheduledStartTime, TRO.ScheduledArrivalTime, TRO.DriverName, TRO.BusID " +
-                                                                "FROM TripOffering AS TRO, Trip  AS T " +
-                                                                "WHERE T.StartLocationName LIKE ? AND " +
+    private static final String DISPLAY_SCHEDULE_QUERY_FORMAT = "SELECT TO.ScheduledStartTime, TO.ScheduledArrivalTime, TO.DriverName, TO.BusID " +
+                                                                "FROM TripOffering AS TO, Trip  AS T " +
+                                                                "WHERE T.StartLocationName = ? AND " +
                                                                 "T.DestinationName = ? AND " +
-                                                                "TRO.Date = ? AND " +
-                                                                "T.TripNumber = TRO.TripNumber " +
+                                                                "TO.Date = ? AND " +
+                                                                "T.TripNumber = TO.TripNumber " +
                                                                 "ORDER BY ScheduledStartTime ";
 
     private static final String DELETE_TRIP_OFFERING_QUERY_FORMAT = "DELETE TripOffering " +
@@ -146,7 +146,7 @@ public class CS4350Lab4 {
         try {
             String input;
              do {
-                 input = getInput("Option to Run Command: ");
+                 input = getInput("Option to Run Command: ").toUpperCase();
                  switch (input.toUpperCase()) {
                     case "1":
                         displayTripSchedule(statements.get("DISPLAY_SCHEDULE"));
@@ -252,7 +252,7 @@ public class CS4350Lab4 {
         }
     }
 
-    private static void addTripOffering(PreparedStatement statement) {
+    private static void addTripOffering(final PreparedStatement statement) {
         try {
             String input;
             do {
@@ -277,7 +277,7 @@ public class CS4350Lab4 {
                 input = getInput("'YES' to add another trip ('NO' to continue): ");
             } while (input.equalsIgnoreCase("YES"));
 
-            print("Successfully added all Trip Offerings");
+            println("Successfully added all Trip Offerings");
         } catch (SQLException e) {
             printError(e);
         }
@@ -299,7 +299,6 @@ public class CS4350Lab4 {
             printError(e);
         }
     }
-
 
     private static void changeTripOfferingBus(final PreparedStatement statement){
         final Map<String, String> input = getInput(BUS_ID, TRIP_NUMBER, DATE, SCHEDULED_START_TIME);
@@ -341,12 +340,12 @@ public class CS4350Lab4 {
                 statement.setString(1, input.get(DRIVER_NAME));
                 statement.setString(2, currentDate.toString());
 
-                final ResultSet rs = executeQuery(statement);
+                final ResultSet resultSet = executeQuery(statement);
 
-                if (!columnsDisplayed) displayResultColumns(rs.getMetaData());
+                if (!columnsDisplayed) displayResultColumns(resultSet.getMetaData());
                 columnsDisplayed = !columnsDisplayed ? true : true;
 
-                displayResultSet(rs, currentDate.toString());
+                displayResultSet(resultSet, currentDate.toString());
             } catch (SQLException e) {
                 printError(e);
             }
@@ -434,9 +433,9 @@ public class CS4350Lab4 {
         final String query = getInput("Statement: ");
 
         try {
-            if(query.toUpperCase().startsWith("SELECT")){
+            if (query.toUpperCase().startsWith("SELECT")) {
                 displayResults(statement.executeQuery(query));
-            } else if (query.toUpperCase().startsWith("INSERT") || query.startsWith("UPDATE") || query.startsWith("DELETE")){
+            } else if (query.toUpperCase().startsWith("INSERT") || query.startsWith("UPDATE") || query.startsWith("DELETE")) {
                 if(statement.executeUpdate(query) == 0) throw new SQLException(compileNoResultsMessage(query));
             } else {
                 throw new SQLException("Unsupported Statement.");
@@ -464,11 +463,11 @@ public class CS4350Lab4 {
         }
     }
 
-    private static Map<String, PreparedStatement> getPreparedStatements(final Connection dbc) throws SQLException {
+    private static Map<String, PreparedStatement> getPreparedStatements(final Connection connection) throws SQLException {
         final Map<String, PreparedStatement> preparedStatements = new HashMap<>();
 
         for(final Map.Entry<String, String> statement : getStatementsFormats().entrySet())
-            preparedStatements.put(statement.getKey(), dbc.prepareStatement(statement.getValue()));
+            preparedStatements.put(statement.getKey(), connection.prepareStatement(statement.getValue()));
 
         return Map.copyOf(preparedStatements);
     }
@@ -498,10 +497,11 @@ public class CS4350Lab4 {
         do {
             println("Tables:");
             for(int i = 0; i <= n; ++i) {
-                if (i == n)
+                if (i == n) {
                     println(String.format("%d)\t%s", (n + 1), "Display All"));
-                else
+                } else {
                     println(String.format("%d)\t%s", (i + 1), TABLES.get(i)));
+                }
             }
 
             input = Integer.parseInt(getInput("Table: "));
@@ -509,36 +509,36 @@ public class CS4350Lab4 {
             if(input < 0 || input > (n + 1)) println("Invalid Input. Try Again.\n");
         } while(!(input <= (n + 1) && input > 0));
 
-        for (final String s : ((input == (n + 1)) ? TABLES : List.of((TABLES.get(input - 1)))))
-            displayResults(statement.executeQuery(String.format(DISPLAY_TABLE_FORMAT, s)));
+        for (final String table : ((input == (n + 1)) ? TABLES : List.of((TABLES.get(input - 1)))))
+            displayResults(statement.executeQuery(String.format(DISPLAY_TABLE_FORMAT, table)));
     }
 
-    private static void displayResults(final ResultSet rs) throws SQLException {
-        displayResultColumns(rs.getMetaData());
-        displayResultSet(rs, null);
+    private static void displayResults(final ResultSet resultSet) throws SQLException {
+        displayResultColumns(resultSet.getMetaData());
+        displayResultSet(resultSet, null);
     }
 
-    private static void displayResultSet(final ResultSet rs, final String title) throws SQLException {
-        final int colCount = rs.getMetaData().getColumnCount();
+    private static void displayResultSet(final ResultSet resultSet, final String title) throws SQLException {
+        final int colCount = resultSet.getMetaData().getColumnCount();
 
         if(title != null)
             print(String.format("\n-----------------------%s-------------------------------\n", title));
 
-        while(rs.next()){
+        while(resultSet.next()){
             for(int i = 1; i <= colCount; ++i)
-                print(String.format("%s\t\t", rs.getString(i)));
+                print(String.format("%s\t\t", resultSet.getString(i)));
 
-            println("");
+            println();
         }
     }
 
-    private static void displayResultColumns(final ResultSetMetaData rsmd) throws SQLException {
-        final int colCount = rsmd.getColumnCount();
+    private static void displayResultColumns(final ResultSetMetaData resultSetMetaData) throws SQLException {
+        final int colCount = resultSetMetaData.getColumnCount();
 
         for(int i = 1; i <= colCount; ++i)
-            print(String.format("%s\t\t", rsmd.getColumnName(i)));
+            print(String.format("%s\t\t", resultSetMetaData.getColumnName(i)));
 
-        println("\n------------------------------------------------------\n");
+        print("\n------------------------------------------------------\n");
     }
 
     private static ResultSet executeQuery(final PreparedStatement statement) throws SQLException {
@@ -550,7 +550,7 @@ public class CS4350Lab4 {
     }
 
     private static Map<String, String> getInput(final String ...args){
-       return Arrays.stream(args).collect(Collectors.toMap(arg -> arg, CS4350Lab4::getInput));
+       return Arrays.stream(args).collect(Collectors.toMap(arg -> arg, PomonaTransitSystem::getInput));
     }
 
     private static String getInput(){
@@ -564,6 +564,10 @@ public class CS4350Lab4 {
 
     private static void print(final String s){
         System.out.print(s);
+    }
+
+    private static void println(){
+        println("");
     }
 
     private static void println(final String s){
