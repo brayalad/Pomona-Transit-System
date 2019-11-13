@@ -1,16 +1,25 @@
 
-import java.sql.*;
-
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Date;
+import java.sql.Time;
 
 import java.time.LocalDate;
-import java.util.*;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 
 public class PomonaTransitSystem {
-
-    private static final String NO_RESULT_FORMAT = "No result for input: \n %s";
 
     private static final String MENU =  "Menu Options:\n" +
                                         " 1)\tDisplay a Schedule\n" +
@@ -24,7 +33,7 @@ public class PomonaTransitSystem {
                                         " 9)\tAdd a Bus\n" +
                                         "10)\tDelete a Bus\n" +
                                         "11)\tInsert Actual Trip Info\n" +
-                                        "12)\tDisplay all commands\n" +
+                                        "12)\tDisplay options\n" +
                                         "13)\tDisplay a table\n" +
                                         "14)\tExecute custom statement\n" +
                                         " Q)\tExit program\n";
@@ -112,6 +121,12 @@ public class PomonaTransitSystem {
 
     private static final String NUMBER_OF_PASSENGERS_OUT = "Number of Passengers out: ";
 
+    private static final String ENTER_INPUT_FORMAT = "Enter %s";
+
+    private static final String ERROR_FORMAT = "Error: [%s]\n";
+
+    private static final String NO_RESULT_FORMAT = "No result for input: \n %s";
+
     private static final Scanner input = new Scanner(System.in);
 
     public static void main(final String[] args) {
@@ -125,20 +140,19 @@ public class PomonaTransitSystem {
     }
 
     private static void run(){
-        Connection connection = null;
-        Map<String, PreparedStatement> statements = null;
+        Connection connection;
+        Map<String, PreparedStatement> statements;
         try {
             connection = connectToDatabase();
             statements = getPreparedStatements(connection);
-        } catch (SQLException e) {
-            printError("Connection to database not made.");
-        } finally {
             if(statements != null && connection != null) {
                 print(MENU);
                 run(statements, connection);
             } else {
-                println("Make sure database settings are correct.");
+                throw new SQLException("Connection to database not made.");
             }
+        } catch (SQLException e) {
+            printError(e);
         }
     }
 
@@ -384,7 +398,7 @@ public class PomonaTransitSystem {
     }
 
     private static void deleteBus(final PreparedStatement statement){
-        final String busID = getInput("Bus ID: ");
+        final String busID = getInput(BUS_ID);
 
         try {
             statement.setString(1, busID);
@@ -446,7 +460,7 @@ public class PomonaTransitSystem {
     }
 
     private static Connection connectToDatabase(){
-        if(System.getenv() == null) throw new RuntimeException("DB setting not set properly");
+        if(System.getenv() == null) throw new RuntimeException("DB setting not set properly.");
 
         try {
             Class.forName(System.getenv("DB_DRIVER"));
@@ -473,21 +487,19 @@ public class PomonaTransitSystem {
     }
 
     private static Map<String, String> getStatementsFormats() {
-        final Map<String, String> statements = new HashMap<>(11);
-
-        statements.put("DISPLAY_SCHEDULE", DISPLAY_SCHEDULE_QUERY_FORMAT);
-        statements.put("DELETE_TRIP_OFFERING", DELETE_TRIP_OFFERING_QUERY_FORMAT);
-        statements.put("ADD_TRIP_OFFERING", ADD_TRIP_OFFERING_QUERY_FORMAT);
-        statements.put("CHANGE_DRIVER", CHANGE_DRIVER_QUERY_FORMAT);
-        statements.put("CHANGE_BUS", CHANGE_BUS_QUERY_FORMAT);
-        statements.put("DISPLAY_TRIP_STOPS", DISPLAY_TRIP_STOPS_QUERY_FORMAT);
-        statements.put("DISPLAY_WEEKLY", DISPLAY_WEEKLY_QUERY_FORMAT);
-        statements.put("ADD_DRIVER", ADD_DRIVER_QUERY_FORMAT);
-        statements.put("ADD_BUS", ADD_BUS_QUERY_FORMAT);
-        statements.put("DELETE_BUS", DELETE_BUS_QUERY_FORMAT);
-        statements.put("INSERT_TRIP_DATA", INSERT_TRIP_DATA_QUERY_FORMAT);
-
-        return Map.copyOf(statements);
+        return Map.ofEntries(
+                Map.entry("DISPLAY_SCHEDULE", DISPLAY_SCHEDULE_QUERY_FORMAT),
+                Map.entry("DELETE_TRIP_OFFERING", DELETE_TRIP_OFFERING_QUERY_FORMAT),
+                Map.entry("ADD_TRIP_OFFERING", ADD_TRIP_OFFERING_QUERY_FORMAT),
+                Map.entry("CHANGE_DRIVER", CHANGE_DRIVER_QUERY_FORMAT),
+                Map.entry("CHANGE_BUS", CHANGE_BUS_QUERY_FORMAT),
+                Map.entry("DISPLAY_TRIP_STOPS", DISPLAY_TRIP_STOPS_QUERY_FORMAT),
+                Map.entry("DISPLAY_WEEKLY", DISPLAY_WEEKLY_QUERY_FORMAT),
+                Map.entry("ADD_DRIVER", ADD_DRIVER_QUERY_FORMAT),
+                Map.entry("ADD_BUS", ADD_BUS_QUERY_FORMAT),
+                Map.entry("DELETE_BUS", DELETE_BUS_QUERY_FORMAT),
+                Map.entry("INSERT_TRIP_DATA", INSERT_TRIP_DATA_QUERY_FORMAT)
+        );
     }
 
     private static void displayTable(final Statement statement) throws SQLException {
@@ -506,7 +518,7 @@ public class PomonaTransitSystem {
 
             input = Integer.parseInt(getInput("Table: "));
 
-            if(input < 0 || input > (n + 1)) println("Invalid Input. Try Again.\n");
+            if(input < 0 || input > (n + 1)) printError("Invalid Input. Try Again.\n");
         } while(!(input <= (n + 1) && input > 0));
 
         for (final String table : ((input == (n + 1)) ? TABLES : List.of((TABLES.get(input - 1)))))
@@ -549,17 +561,17 @@ public class PomonaTransitSystem {
         return statement.executeLargeUpdate();
     }
 
-    private static Map<String, String> getInput(final String ...args){
-       return Arrays.stream(args).collect(Collectors.toMap(arg -> arg, PomonaTransitSystem::getInput));
-    }
-
     private static String getInput(){
         return input.nextLine().trim();
     }
 
     private static String getInput(final String s){
-        print(String.format("Enter %s", s));
+        print(String.format(ENTER_INPUT_FORMAT, s));
         return getInput();
+    }
+
+    private static Map<String, String> getInput(final String ...args){
+        return Arrays.stream(args).collect(Collectors.toMap(arg -> arg, PomonaTransitSystem::getInput));
     }
 
     private static void print(final String s){
@@ -567,7 +579,7 @@ public class PomonaTransitSystem {
     }
 
     private static void println(){
-        println("");
+        System.out.println();
     }
 
     private static void println(final String s){
@@ -579,7 +591,7 @@ public class PomonaTransitSystem {
     }
 
     private static void printError(final String s){
-        System.err.printf("Error: %s \n", s);
+        System.err.printf(ERROR_FORMAT, s);
     }
 
     private static String compileNoResultsMessage(final Map<String, String> input){
@@ -590,7 +602,13 @@ public class PomonaTransitSystem {
         return String.format(NO_RESULT_FORMAT, input);
     }
 
-    private static void clearStatementParameters(final Map<String, PreparedStatement> statements) throws SQLException{
-        for (PreparedStatement statement : statements.values()) statement.clearParameters();
+    private static void clearStatementParameters(final Map<String, PreparedStatement> statements){
+        for (PreparedStatement statement : statements.values()) {
+            try {
+                statement.clearParameters();
+            } catch (SQLException e) {
+                printError(e);
+            }
+        }
     }
 }
