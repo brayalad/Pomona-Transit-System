@@ -19,24 +19,24 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 
 
-public class PomonaTransitSystem {
+public final class PomonaTransitSystem {
 
     private static final String MENU =  "Menu Options:\n" +
-                                        " 1)\tDisplay a Schedule\n" +
-                                        " 2)\tDelete a Trip Offering\n" +
-                                        " 3)\tAdd a Trip Offering\n" +
-                                        " 4)\tChange a Driver\n" +
-                                        " 5)\tChange a Bus\n" +
-                                        " 6)\tDisplay Trip Stops\n" +
-                                        " 7)\tDisplay Weekly Schedule for Driver\n" +
-                                        " 8)\tAdd a Driver\n" +
-                                        " 9)\tAdd a Bus\n" +
-                                        "10)\tDelete a Bus\n" +
-                                        "11)\tInsert Actual Trip Info\n" +
-                                        "12)\tDisplay options\n" +
-                                        "13)\tDisplay a table\n" +
-                                        "14)\tExecute custom statement\n" +
-                                        " Q)\tExit program\n";
+                                        " 1)\tDisplay a Schedule.\n" +
+                                        " 2)\tDelete a Trip Offering.\n" +
+                                        " 3)\tAdd a Trip Offering.\n" +
+                                        " 4)\tChange a Driver.\n" +
+                                        " 5)\tChange a Bus.\n" +
+                                        " 6)\tDisplay Trip Stops.\n" +
+                                        " 7)\tDisplay Weekly Schedule for Driver.\n" +
+                                        " 8)\tAdd a Driver.\n" +
+                                        " 9)\tAdd a Bus.\n" +
+                                        "10)\tDelete a Bus.\n" +
+                                        "11)\tInsert Actual Trip Info.\n" +
+                                        "12)\tDisplay Options.\n" +
+                                        "13)\tDisplay a Table.\n" +
+                                        "14)\tExecute a Custom SQL Statement.\n" +
+                                        " Q)\tExit program.\n";
 
     private static final String DISPLAY_TABLE_FORMAT = "SELECT * FROM %s";
 
@@ -89,6 +89,20 @@ public class PomonaTransitSystem {
 
     private static final String INSERT_TRIP_DATA_QUERY_FORMAT = "INSERT INTO ActualTripInfo VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
+    private static final Map<String, String> STATEMENTS = Map.ofEntries(
+            Map.entry("DISPLAY_SCHEDULE", DISPLAY_SCHEDULE_QUERY_FORMAT),
+            Map.entry("DELETE_TRIP_OFFERING", DELETE_TRIP_OFFERING_QUERY_FORMAT),
+            Map.entry("ADD_TRIP_OFFERING", ADD_TRIP_OFFERING_QUERY_FORMAT),
+            Map.entry("CHANGE_DRIVER", CHANGE_DRIVER_QUERY_FORMAT),
+            Map.entry("CHANGE_BUS", CHANGE_BUS_QUERY_FORMAT),
+            Map.entry("DISPLAY_TRIP_STOPS", DISPLAY_TRIP_STOPS_QUERY_FORMAT),
+            Map.entry("DISPLAY_WEEKLY", DISPLAY_WEEKLY_QUERY_FORMAT),
+            Map.entry("ADD_DRIVER", ADD_DRIVER_QUERY_FORMAT),
+            Map.entry("ADD_BUS", ADD_BUS_QUERY_FORMAT),
+            Map.entry("DELETE_BUS", DELETE_BUS_QUERY_FORMAT),
+            Map.entry("INSERT_TRIP_DATA", INSERT_TRIP_DATA_QUERY_FORMAT)
+    );
+
     private static final String START_LOCATION_NAME = "Start Location Name: ";
 
     private static final String DESTINATION_NAME = "Destination Name: ";
@@ -140,11 +154,8 @@ public class PomonaTransitSystem {
     }
 
     private static void run(){
-        Connection connection;
-        Map<String, PreparedStatement> statements;
-        try {
-            connection = connectToDatabase();
-            statements = getPreparedStatements(connection);
+        try (final Connection connection = connectToDatabase()){
+            final Map<String, PreparedStatement> statements = getPreparedStatements(connection);
             if(statements != null && connection != null) {
                 print(MENU);
                 run(statements, connection);
@@ -157,7 +168,7 @@ public class PomonaTransitSystem {
     }
 
     private static void run(final Map<String, PreparedStatement> statements, final Connection connection) {
-        try {
+        try (final Statement statement = connection.createStatement()){
             String input;
              do {
                  input = getInput("Option to Run Command: ").toUpperCase();
@@ -211,10 +222,11 @@ public class PomonaTransitSystem {
                         break;
 
                      case "13":
-                         displayTable(connection.createStatement());
+                         displayTable(statement);
                         break;
+
                      case "14":
-                         executeCustomStatement(connection.createStatement());
+                         executeCustomStatement(statement);
                          break;
 
                     case "Q":
@@ -346,8 +358,6 @@ public class PomonaTransitSystem {
         final Map<String, String> input = getInput(DRIVER_NAME, DATE);
 
         final LocalDate startDate = LocalDate.parse(input.get(DATE));
-
-        boolean columnsDisplayed = false;
         for(int i = 0; i < 7; ++i) {
             final LocalDate currentDate = startDate.plusDays(i);
             try {
@@ -356,8 +366,7 @@ public class PomonaTransitSystem {
 
                 final ResultSet resultSet = executeQuery(statement);
 
-                if (!columnsDisplayed) displayResultColumns(resultSet.getMetaData());
-                columnsDisplayed = !columnsDisplayed ? true : true;
+                if (i == 0) displayResultColumns(resultSet.getMetaData());
 
                 displayResultSet(resultSet, currentDate.toString());
             } catch (SQLException e) {
@@ -449,8 +458,12 @@ public class PomonaTransitSystem {
         try {
             if (query.toUpperCase().startsWith("SELECT")) {
                 displayResults(statement.executeQuery(query));
-            } else if (query.toUpperCase().startsWith("INSERT") || query.startsWith("UPDATE") || query.startsWith("DELETE")) {
-                if(statement.executeUpdate(query) == 0) throw new SQLException(compileNoResultsMessage(query));
+            } else if (
+                    query.toUpperCase().startsWith("INSERT") ||
+                    query.toUpperCase().startsWith("UPDATE") ||
+                    query.toUpperCase().startsWith("DELETE")
+            ) {
+                if(executeUpdate(statement, query) == 0) throw new SQLException(compileNoResultsMessage(query));
             } else {
                 throw new SQLException("Unsupported Statement.");
             }
@@ -480,33 +493,18 @@ public class PomonaTransitSystem {
     private static Map<String, PreparedStatement> getPreparedStatements(final Connection connection) throws SQLException {
         final Map<String, PreparedStatement> preparedStatements = new HashMap<>();
 
-        for(final Map.Entry<String, String> statement : getStatementsFormats().entrySet())
+        for(final Map.Entry<String, String> statement : STATEMENTS.entrySet())
             preparedStatements.put(statement.getKey(), connection.prepareStatement(statement.getValue()));
 
         return Map.copyOf(preparedStatements);
     }
 
-    private static Map<String, String> getStatementsFormats() {
-        return Map.ofEntries(
-                Map.entry("DISPLAY_SCHEDULE", DISPLAY_SCHEDULE_QUERY_FORMAT),
-                Map.entry("DELETE_TRIP_OFFERING", DELETE_TRIP_OFFERING_QUERY_FORMAT),
-                Map.entry("ADD_TRIP_OFFERING", ADD_TRIP_OFFERING_QUERY_FORMAT),
-                Map.entry("CHANGE_DRIVER", CHANGE_DRIVER_QUERY_FORMAT),
-                Map.entry("CHANGE_BUS", CHANGE_BUS_QUERY_FORMAT),
-                Map.entry("DISPLAY_TRIP_STOPS", DISPLAY_TRIP_STOPS_QUERY_FORMAT),
-                Map.entry("DISPLAY_WEEKLY", DISPLAY_WEEKLY_QUERY_FORMAT),
-                Map.entry("ADD_DRIVER", ADD_DRIVER_QUERY_FORMAT),
-                Map.entry("ADD_BUS", ADD_BUS_QUERY_FORMAT),
-                Map.entry("DELETE_BUS", DELETE_BUS_QUERY_FORMAT),
-                Map.entry("INSERT_TRIP_DATA", INSERT_TRIP_DATA_QUERY_FORMAT)
-        );
-    }
-
     private static void displayTable(final Statement statement) throws SQLException {
         final int n = TABLES.size();
 
-        int input;
-        do {
+        String input;
+        int index = Integer.MIN_VALUE;
+        while(!(index <= (n + 1) && index > 0)) {
             println("Tables:");
             for(int i = 0; i <= n; ++i) {
                 if (i == n) {
@@ -515,19 +513,26 @@ public class PomonaTransitSystem {
                     println(String.format("%d)\t%s", (i + 1), TABLES.get(i)));
                 }
             }
+            input = getInput("Table: ");
 
-            input = Integer.parseInt(getInput("Table: "));
+            if(input.equalsIgnoreCase("Q")) return;
 
-            if(input < 0 || input > (n + 1)) printError("Invalid Input. Try Again.\n");
-        } while(!(input <= (n + 1) && input > 0));
+            if(isNumeric(input))
+                index = Integer.parseInt(input);
 
-        for (final String table : ((input == (n + 1)) ? TABLES : List.of((TABLES.get(input - 1)))))
-            displayResults(statement.executeQuery(String.format(DISPLAY_TABLE_FORMAT, table)));
+            if(index < 0 || index > (n + 1))
+                printError("Invalid Input. Try Again.");
+        }
+
+        for (final String table : ((index == (n + 1)) ? TABLES : List.of((TABLES.get(index - 1)))))
+            displayResults(executeQuery(statement, String.format(DISPLAY_TABLE_FORMAT, table)));
     }
 
     private static void displayResults(final ResultSet resultSet) throws SQLException {
-        displayResultColumns(resultSet.getMetaData());
-        displayResultSet(resultSet, null);
+        try (resultSet) {
+            displayResultColumns(resultSet.getMetaData());
+            displayResultSet(resultSet, null);
+        }
     }
 
     private static void displayResultSet(final ResultSet resultSet, final String title) throws SQLException {
@@ -553,8 +558,16 @@ public class PomonaTransitSystem {
         print("\n------------------------------------------------------\n");
     }
 
+    private static ResultSet executeQuery(final Statement statement, final String query) throws SQLException {
+        return statement.executeQuery(query);
+    }
+
     private static ResultSet executeQuery(final PreparedStatement statement) throws SQLException {
         return statement.executeQuery();
+    }
+
+    private static long executeUpdate(final Statement statement, final String query) throws SQLException {
+        return statement.executeUpdate(query);
     }
 
     private static long executeUpdate(final PreparedStatement statement) throws SQLException {
@@ -594,6 +607,15 @@ public class PomonaTransitSystem {
         System.err.printf(ERROR_FORMAT, s);
     }
 
+    private static boolean isNumeric(final String s){
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException | NullPointerException nfe){
+            return false;
+        }
+    }
+
     private static String compileNoResultsMessage(final Map<String, String> input){
         return compileNoResultsMessage(input.toString());
     }
@@ -603,7 +625,7 @@ public class PomonaTransitSystem {
     }
 
     private static void clearStatementParameters(final Map<String, PreparedStatement> statements){
-        for (PreparedStatement statement : statements.values()) {
+        for (final PreparedStatement statement : statements.values()) {
             try {
                 statement.clearParameters();
             } catch (SQLException e) {
