@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 public final class PomonaTransitSystem {
 
-    private static final String MENU =  "Menu Options:\n" +
+    private static final String MENU =  "\nMenu Options:\n" +
                                         " 1)\tDisplay a Schedule.\n" +
                                         " 2)\tDelete a Trip Offering.\n" +
                                         " 3)\tAdd a Trip Offering.\n" +
@@ -42,15 +42,15 @@ public final class PomonaTransitSystem {
 
     private static final List<String> TABLES = List.of("ActualTripStopInfo", "Bus", "Driver", "Stop", "Trip", "TripOffering", "TripStopInfo");
 
-    private static final String DISPLAY_SCHEDULE_QUERY_FORMAT = "SELECT TO.ScheduledStartTime, TO.ScheduledArrivalTime, TO.DriverName, TO.BusID " +
-                                                                "FROM TripOffering AS TO, Trip  AS T " +
+    private static final String DISPLAY_SCHEDULE_QUERY_FORMAT = "SELECT TRO.ScheduledStartTime, TRO.ScheduledArrivalTime, TRO.DriverName, TRO.BusID " +
+                                                                "FROM TripOffering AS TRO, Trip  AS T " +
                                                                 "WHERE T.StartLocationName = ? AND " +
                                                                 "T.DestinationName = ? AND " +
-                                                                "TO.Date = ? AND " +
-                                                                "T.TripNumber = TO.TripNumber " +
-                                                                "ORDER BY ScheduledStartTime ";
+                                                                "TRO.Date = ? AND " +
+                                                                "T.TripNumber = TRO.TripNumber " +
+                                                                "ORDER BY ScheduledStartTime";
 
-    private static final String DELETE_TRIP_OFFERING_QUERY_FORMAT = "DELETE TripOffering " +
+    private static final String DELETE_TRIP_OFFERING_QUERY_FORMAT = "DELETE FROM TripOffering " +
                                                                     "WHERE TripNumber = ? AND " +
                                                                     "Date = ? AND " +
                                                                     "ScheduledStartTime = ?";
@@ -87,7 +87,7 @@ public final class PomonaTransitSystem {
     private static final String DELETE_BUS_QUERY_FORMAT = "DELETE FROM Bus " +
                                                           "WHERE BusID = ?";
 
-    private static final String INSERT_TRIP_DATA_QUERY_FORMAT = "INSERT INTO ActualTripInfo VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_TRIP_DATA_QUERY_FORMAT = "INSERT INTO ActualTripStopInfo VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private static final Map<String, String> STATEMENTS = Map.ofEntries(
             Map.entry("DISPLAY_SCHEDULE", DISPLAY_SCHEDULE_QUERY_FORMAT),
@@ -157,7 +157,6 @@ public final class PomonaTransitSystem {
         try (final Connection connection = connectToDatabase()){
             final Map<String, PreparedStatement> statements = getPreparedStatements(connection);
             if(statements != null && connection != null) {
-                print(MENU);
                 run(statements, connection);
             } else {
                 throw new SQLException("Connection to database not made.");
@@ -171,6 +170,7 @@ public final class PomonaTransitSystem {
         try (final Statement statement = connection.createStatement()){
             String input;
              do {
+                 print(MENU);
                  input = getInput("Option to Run Command: ").toUpperCase();
                  switch (input.toUpperCase()) {
                     case "1":
@@ -254,7 +254,7 @@ public final class PomonaTransitSystem {
         try{
             statement.setString(1, input.get(START_LOCATION_NAME));
             statement.setString(2, input.get(DESTINATION_NAME));
-            statement.setDate(3, Date.valueOf(input.get(DATE)));
+            statement.setString(3, input.get(DATE));
 
             displayResults(executeQuery(statement));
         } catch (SQLException e) {
@@ -267,8 +267,8 @@ public final class PomonaTransitSystem {
 
         try {
             statement.setLong(1, Long.parseLong(input.get(TRIP_NUMBER)));
-            statement.setDate(2, Date.valueOf(input.get(DATE)));
-            statement.setTime(3, Time.valueOf(input.get(SCHEDULED_START_TIME)));
+            statement.setString(2, input.get(DATE));
+            statement.setString(3, input.get(SCHEDULED_START_TIME));
 
             if (executeUpdate(statement) == 0) throw new SQLException(compileNoResultsMessage(input));
 
